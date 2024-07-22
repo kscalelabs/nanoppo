@@ -15,9 +15,8 @@ from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
-HUMANOID_STANDUP_XML = "https://raw.githubusercontent.com/openai/gym/master/gym/envs/mujoco/assets/humanoidstandup.xml"
-
-
+# HUMANOID_STANDUP_XML = "https://raw.githubusercontent.com/openai/gym/master/gym/envs/mujoco/assets/humanoidstandup.xml"
+HUMANOID_STANDUP_XML = "assets/stompylegs.xml"
 class HumanoidEnv(MujocoEnv, utils.EzPickle):
     metadata = {
         "render_modes": [
@@ -25,34 +24,39 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
             "rgb_array",
             "depth_array",
         ],
-        "render_fps": 67,
+        "render_fps": 200,
     }
 
     def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401
-        observation_space = Box(low=-np.inf, high=np.inf, shape=(376,), dtype=np.float64)
-        xml_path = self._download_mujoco(HUMANOID_STANDUP_XML)
+        observation_space = Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float64)
+        # xml_path = self._download_mujoco(HUMANOID_STANDUP_XML)
+        xml_path = self.get_local_mujoco(HUMANOID_STANDUP_XML)
         super().__init__(str(xml_path), 5, observation_space=observation_space, **kwargs)
 
-    def _download_mujoco(self, url: str, name: str | None = None) -> Path:
-        if name is None:
-            name = url.split("/")[-1]
+    def get_local_mujoco(self, local_path: str) -> Path:
+        return Path(local_path).resolve()
+    
+    # def _download_mujoco(self, url: str, name: str | None = None) -> Path:
+    #     if name is None:
+    #         name = url.split("/")[-1]
 
-        cache_dir = Path(os.environ.get("MUJOCO_ARTIFACTS_DIR", Path.home() / ".cache" / "mujoco"))
-        cache_dir = cache_dir.expanduser().resolve()
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_path = cache_dir / name
-        if cache_path.exists():
-            return cache_path
+    #     cache_dir = Path(os.environ.get("MUJOCO_ARTIFACTS_DIR", Path.home() / ".cache" / "mujoco"))
+    #     cache_dir = cache_dir.expanduser().resolve()
+    #     cache_dir.mkdir(parents=True, exist_ok=True)
+    #     cache_path = cache_dir / name
+    #     if cache_path.exists():
+    #         return cache_path
 
-        # Downloads the file using the provided URL.
-        response = requests.get(url)
-        response.raise_for_status()
-        with cache_path.open("wb") as file:
-            file.write(response.content)
-        return cache_path
+    #     # Downloads the file using the provided URL.
+    #     response = requests.get(url)
+    #     response.raise_for_status()
+    #     with cache_path.open("wb") as file:
+    #         file.write(response.content)
+    #     return cache_path
 
     def _get_obs(self) -> NDArray[np.float64]:
         data = self.data
+        # breakpoint()
         return np.concatenate(
             [
                 data.qpos.flat[2:],
@@ -63,6 +67,7 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
                 data.cfrc_ext.flat,
             ]
         )
+        
 
     def step(self, action: NDArray[np.float32]) -> tuple[NDArray[np.float64], np.float64, bool, bool, dict[str, Any]]:
         self.do_simulation(action, self.frame_skip)
@@ -93,6 +98,7 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
 
     def reset_model(self) -> NDArray[np.float64]:
         c = 0.01
+        self.init_qpos = self.model.keyframe("default").qpos
         self.set_state(
             self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.model.nq),
             self.init_qvel
@@ -125,6 +131,7 @@ def run_environment_adhoc() -> None:
 
     for _ in range(args.steps):
         action = env.action_space.sample()
+        action = (action)*0.0
         _, _, reward, done, info = env.step(action)
         logger.info("Action: %s, Reward: %s, Done: %s, Info: %s", action, reward, done, info)
 
