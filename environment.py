@@ -4,13 +4,14 @@ import argparse
 import logging
 import os
 from pathlib import Path
-from typing import Any, SupportsFloat
+from typing import Any
 
 import numpy as np
 import requests
 from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
+from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
             file.write(response.content)
         return cache_path
 
-    def _get_obs(self) -> np.float64:
+    def _get_obs(self) -> NDArray[np.float64]:
         data = self.data
         return np.concatenate(
             [
@@ -63,7 +64,7 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
             ]
         )
 
-    def step(self, action: np.float32) -> tuple[np.float64, SupportsFloat, bool, bool, dict[str, Any]]:
+    def step(self, action: NDArray[np.float32]) -> tuple[NDArray[np.float64], np.float64, bool, bool, dict[str, Any]]:
         self.do_simulation(action, self.frame_skip)
 
         pos_after = self.data.qpos[2]
@@ -90,7 +91,7 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
             },
         )
 
-    def reset_model(self) -> np.float64:  # type: ignore[override]
+    def reset_model(self) -> NDArray[np.float64]:
         c = 0.01
         self.set_state(
             self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.model.nq),
