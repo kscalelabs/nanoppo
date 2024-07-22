@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-
-import torch
+"""Runs the inference loop for the model."""
 
 
 def main() -> None:
