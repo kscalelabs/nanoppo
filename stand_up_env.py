@@ -1,4 +1,5 @@
 """Defines the environment used for training the agent."""
+
 import argparse
 import logging
 import os
@@ -16,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 # HUMANOID_STANDUP_XML = "https://raw.githubusercontent.com/openai/gym/master/gym/envs/mujoco/assets/humanoidstandup.xml"
 HUMANOID_STANDUP_XML = "assets/stompylegs.xml"
+
+
 class HumanoidEnv(MujocoEnv, utils.EzPickle):
     metadata = {
         "render_modes": [
@@ -34,7 +37,7 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
 
     def get_local_mujoco(self, local_path: str) -> Path:
         return Path(local_path).resolve()
-    
+
     # def _download_mujoco(self, url: str, name: str | None = None) -> Path:
     #     if name is None:
     #         name = url.split("/")[-1]
@@ -66,7 +69,6 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
                 data.cfrc_ext.flat,
             ]
         )
-        
 
     def step(self, action: NDArray[np.float32]) -> tuple[NDArray[np.float64], np.float64, bool, bool, dict[str, Any]]:
         self.do_simulation(action, self.frame_skip)
@@ -130,7 +132,7 @@ def run_environment_adhoc() -> None:
 
     for _ in range(args.steps):
         action = env.action_space.sample()
-        action = (action)*0.0
+        action = (action) * 0.0
         _, _, reward, done, info = env.step(action)
         logger.info("Action: %s, Reward: %s, Done: %s, Info: %s", action, reward, done, info)
 
