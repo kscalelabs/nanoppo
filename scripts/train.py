@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 """Runs the training loop for the model."""
+
 from __future__ import annotations
 import argparse
 import logging
@@ -8,10 +9,11 @@ from scripts.walking_env import HumanoidEnv
 
 
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 
 import gymnasium as gym
-import random 
+import random
 import math
 from typing import Optional, Union
 import matplotlib.pyplot as plt
@@ -25,6 +27,7 @@ from torch.distributions.normal import Normal
 from scripts.policy import Reinforce
 
 logger = logging.getLogger(__name__)
+
 
 # traning with random actions
 def run_environment_adhoc() -> None:
@@ -47,10 +50,11 @@ def run_environment_adhoc() -> None:
             env.reset()
 
     env.close()
-    
+
+
 # training using Reinforce
-def train() -> None: 
-    plt.rcParams["figure.figsize"] = (10,5)
+def train() -> None:
+    plt.rcParams["figure.figsize"] = (10, 5)
     # sets a consistent plot size
 
     env = HumanoidEnv(render_mode="human")
@@ -58,7 +62,7 @@ def train() -> None:
 
     wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)
 
-    total_num_episodes = int(5e3) 
+    total_num_episodes = int(5e3)
 
     obs_space_dims = 361
 
@@ -82,21 +86,21 @@ def train() -> None:
             done = False
             while not done:
                 action = agent.sample_action(obs)
-            # print(action)
+                # print(action)
                 # Step return type - `tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]`
                 # These represent the next observation, the reward from the step,
                 # if the episode is terminated, if the episode is truncated and
                 # additional info from the step
                 obs, reward, terminated, truncated, info = wrapped_env.step(action)
                 agent.rewards.append(reward)
-            # print(agent)
+                # print(agent)
                 # End the episode when either truncated or terminated is true
                 #  - truncated: The episode duration reaches max number of timesteps
                 #  - terminated: Any of the state space values is no longer finite.
                 done = terminated or truncated
                 # if (terminated):
                 #     print("terminated")
-                    
+
                 # if (truncated):
                 #     print("truncated")
             reward_over_episodes.append(wrapped_env.return_queue[-1])
@@ -111,10 +115,9 @@ def train() -> None:
     df1 = pd.DataFrame(rewards_to_plot).melt()
     df1.rename(columns={"variable": "episodes", "value": "reward"}, inplace=True)
     sns.set(style="darkgrid", context="talk", palette="rainbow")
-    sns.lineplot(x="episodes", y="reward", data=df1).set(
-        title="REINFORCE for Walking"
-    )
-    plt.savefig('walking_rewards.png')
+    sns.lineplot(x="episodes", y="reward", data=df1).set(title="REINFORCE for Walking")
+    plt.savefig("walking_rewards.png")
+
 
 if __name__ == "__main__":
     # python environment.py

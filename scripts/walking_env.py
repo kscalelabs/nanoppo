@@ -17,10 +17,12 @@ DEFAULT_CAMERA_CONFIG = {
     "elevation": -20.0,
 }
 
+
 def mass_center(model, data):
     mass = np.expand_dims(model.body_mass, axis=1)
     xpos = data.xipos
     return (np.sum(mass * xpos, axis=0) / np.sum(mass))[0:2].copy()
+
 
 class HumanoidEnv(MujocoEnv, utils.EzPickle):
     metadata = {
@@ -42,7 +44,7 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
         healthy_z_range=(-1, 1),
         reset_noise_scale=1e-2,
         exclude_current_positions_from_observation=True,
-        **kwargs
+        **kwargs,
     ):
         utils.EzPickle.__init__(
             self,
@@ -53,7 +55,7 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
             healthy_z_range,
             reset_noise_scale,
             exclude_current_positions_from_observation,
-            **kwargs
+            **kwargs,
         )
 
         self._forward_reward_weight = forward_reward_weight
@@ -64,32 +66,23 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
 
         self._reset_noise_scale = reset_noise_scale
 
-        self._exclude_current_positions_from_observation = (
-            exclude_current_positions_from_observation
-        )
+        self._exclude_current_positions_from_observation = exclude_current_positions_from_observation
 
         if exclude_current_positions_from_observation:
-            observation_space = Box(
-                low=-np.inf, high=np.inf, shape=(361,), dtype=np.float64
-            )
+            observation_space = Box(low=-np.inf, high=np.inf, shape=(361,), dtype=np.float64)
         else:
-            observation_space = Box(
-                low=-np.inf, high=np.inf, shape=(378,), dtype=np.float64
-            )
+            observation_space = Box(low=-np.inf, high=np.inf, shape=(378,), dtype=np.float64)
 
         MujocoEnv.__init__(
             self, str(self.get_local_mujoco("assets/stompylegs.xml")), 5, observation_space=observation_space, **kwargs
         )
-        
+
     def get_local_mujoco(self, local_path: str) -> Path:
         return Path(local_path).resolve()
-    
+
     @property
     def healthy_reward(self):
-        return (
-            float(self.is_healthy or self._terminate_when_unhealthy)
-            * self._healthy_reward
-        )
+        return float(self.is_healthy or self._terminate_when_unhealthy) * self._healthy_reward
 
     def control_cost(self, action):
         control_cost = self._ctrl_cost_weight * np.sum(np.square(self.data.ctrl))
@@ -167,12 +160,8 @@ class HumanoidEnv(MujocoEnv, utils.EzPickle):
         noise_high = self._reset_noise_scale
         # print(self.init_qpos)
         self.init_qpos = self.model.keyframe("default").qpos
-        qpos = self.init_qpos + self.np_random.uniform(
-            low=noise_low, high=noise_high, size=self.model.nq
-        )
-        qvel = self.init_qvel + self.np_random.uniform(
-            low=noise_low, high=noise_high, size=self.model.nv
-        )
+        qpos = self.init_qpos + self.np_random.uniform(low=noise_low, high=noise_high, size=self.model.nq)
+        qvel = self.init_qvel + self.np_random.uniform(low=noise_low, high=noise_high, size=self.model.nv)
         self.set_state(qpos, qvel)
 
         observation = self._get_obs()
