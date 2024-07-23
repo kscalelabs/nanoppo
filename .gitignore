@@ -16,3 +16,4 @@ build/
 dist/
 *.so
 out*/
+*.stl
