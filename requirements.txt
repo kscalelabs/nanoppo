@@ -8,3 +8,8 @@ torch
 matplotlib
 pandas
 seaborn
+jax
+mujoco-mjx
+brax
+wandb
+isort

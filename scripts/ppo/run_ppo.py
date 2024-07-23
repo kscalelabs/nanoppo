@@ -4,14 +4,14 @@ This file is the executable for running PPO. It is based on this medium article:
 https://medium.com/@eyyu/coding-ppo-from-scratch-with-pytorch-part-1-4-613dfc1b14c8
 """
 # from https://github.com/ericyangyu/PPO-for-Beginners
-import gym
+import gymnasium
 import sys
 import torch
-from humanoid_env import HumanoidEnv
-from arguments import get_args
-from ppo import PPO
-from network import FeedForwardNN
-from eval_policy import eval_policy
+from scripts.ppo.ppo_env import HumanoidEnv
+from scripts.ppo.arguments import get_args
+from scripts.ppo.ppo import PPO
+from scripts.ppo.network import FeedForwardNN
+from scripts.ppo.eval_policy import eval_policy
 
 
 def train(env, hyperparameters, actor_model, critic_model):
@@ -116,7 +116,12 @@ def main(args):
     # Creates the environment we'll be running. If you want to replace with your own
     # custom environment, note that it must inherit Gym and have both continuous
     # observation and action spaces.
+    
     env = HumanoidEnv(render_mode="human")
+    # env = gymnasium.make("Humanoid-v4", render_mode="human")
+    # env = gymnasium.make("-v1", render_mode="rgb_array")
+    
+    
     # Train or test, depending on the mode specified
     if args.mode == "train":
         train(env=env, hyperparameters=hyperparameters, actor_model=args.actor_model, critic_model=args.critic_model)

@@ -2,7 +2,7 @@
 NOTE: All "ALG STEP"s are following the numbers from the original PPO pseudocode.
                 It can be found here: https://spinningup.openai.com/en/latest/_images/math/e62a8971472597f4b014c2da064f636ffe365ba3.svg."""
 # from https://github.com/ericyangyu/PPO-for-Beginners
-import gym
+import gymnasium
 import time
 
 import numpy as np
@@ -31,8 +31,8 @@ class PPO:
                 None
         """
         # Make sure the environment is compatible with our code
-        assert type(env.observation_space) == gym.spaces.Box
-        assert type(env.action_space) == gym.spaces.Box
+        assert type(env.observation_space) == gymnasium.spaces.Box
+        assert type(env.action_space) == gymnasium.spaces.Box
 
         # Initialize hyperparameters for training with PPO
         self._init_hyperparameters(hyperparameters)
@@ -199,9 +199,16 @@ class PPO:
 
                 # Calculate action and make a step in the env.
                 # Note that rew is short for reward.
+                
+                # turn obs from tuple to a tensor
+                obs = obs[0]
+                obs = torch.tensor(obs, dtype=torch.float)
+                # obs = obs.unsqueeze(0)
                 action, log_prob = self.get_action(obs)
-                obs, rew, done, _ = self.env.step(action)
-
+                obs = obs.unsqueeze(0)
+                # breakpoint()
+                obs, rew, terminated, truncated, _ = self.env.step(action)
+                done = terminated or truncated
                 # Track recent reward, action, and action log probability
                 ep_rews.append(rew)
                 batch_acts.append(action)
