@@ -7,7 +7,7 @@ https://medium.com/@eyyu/coding-ppo-from-scratch-with-pytorch-part-1-4-613dfc1b1
 import gym
 import sys
 import torch
-
+from humanoid_env import HumanoidEnv
 from arguments import get_args
 from ppo import PPO
 from network import FeedForwardNN
@@ -116,8 +116,7 @@ def main(args):
     # Creates the environment we'll be running. If you want to replace with your own
     # custom environment, note that it must inherit Gym and have both continuous
     # observation and action spaces.
-    env = gym.make("Pendulum-v0")
-
+    env = HumanoidEnv(render_mode="human")
     # Train or test, depending on the mode specified
     if args.mode == "train":
         train(env=env, hyperparameters=hyperparameters, actor_model=args.actor_model, critic_model=args.critic_model)
