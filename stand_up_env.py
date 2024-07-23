@@ -1,5 +1,4 @@
 """Defines the environment used for training the agent."""
-
 import argparse
 import logging
 import os

@@ -5,3 +5,6 @@ gymnasium[mujoco]
 mujoco<3
 requests
 torch
+matplotlib
+pandas
+seaborn
