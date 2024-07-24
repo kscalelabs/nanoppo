@@ -44,7 +44,7 @@ class HumanoidEnv(PipelineEnv):
         self._action_size = mj_model.nu
         sys = mjcf.load_model(mj_model)
         # kwargs stuff
-        physics_steps_per_control_step = 4  # Should find way to perturb this value in the future
+        physics_steps_per_control_step = 4 
         kwargs["n_frames"] = kwargs.get("n_frames", physics_steps_per_control_step)
         kwargs["backend"] = "mjx"
         
@@ -122,4 +122,5 @@ def run_env():
 
 if __name__ == "__main__":
     # python environment.py
+    # NOTE: its better to use play to test the environment instead
     run_env()
