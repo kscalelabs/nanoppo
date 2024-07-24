@@ -246,7 +246,7 @@ if __name__ == "__main__":
     # args = parser.parse_args()
 
     # Load config from YAML file
-    config = "scripts/mjx/config.yaml"
+    config = "mjx/config.yaml"
     with open(config, "r") as file:
         config = yaml.safe_load(file)
 

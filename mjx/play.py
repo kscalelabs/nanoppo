@@ -18,7 +18,7 @@ from brax.training.agents.ppo import networks as ppo_networks
 from tqdm import tqdm
 
 import wandb
-from scripts.mjx.run_mjx import DEFAULT_REWARD_PARAMS, get_env
+from mjx.train import DEFAULT_REWARD_PARAMS, get_env
 
 InferenceFn = Callable[[jp.ndarray, jp.ndarray], tuple[jp.ndarray, jp.ndarray]]
 
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load config file
-    args.config = "scripts/mjx/config.yaml"
+    args.config = "mjx/config.yaml"
     with open(args.config, "r") as file:
         config = yaml.safe_load(file)
     play(config, args.n_steps, args.render_every, args.width, args.height)
