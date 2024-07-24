@@ -8,22 +8,20 @@ from typing import Any, Callable
 import jax as j
 import jax.numpy as jp
 import mediapy as media
+import mujoco
 import numpy as np
-import wandb
 import yaml
 from brax.io import model
+from brax.mjx.base import State as mjxState
 from brax.training.acme import running_statistics
 from brax.training.agents.ppo import networks as ppo_networks
-import mujoco
-from brax.mjx.base import State as mjxState
-from scripts.mjx.run_mjx import get_env
-
 from tqdm import tqdm
-from scripts.mjx.run_mjx import (
-    DEFAULT_REWARD_PARAMS,
-)
+
+import wandb
+from scripts.mjx.run_mjx import DEFAULT_REWARD_PARAMS, get_env
 
 InferenceFn = Callable[[jp.ndarray, jp.ndarray], tuple[jp.ndarray, jp.ndarray]]
+
 
 def mjx_rollout(
     env: mujoco.MjModel,
@@ -67,6 +65,7 @@ def mjx_rollout(
 
     return rollout
 
+
 def render_mjx_rollout(
     env: mujoco.MjModel,
     inference_fn: InferenceFn,
@@ -94,6 +93,7 @@ def render_mjx_rollout(
     images = env.render(rollout[::render_every], camera="side", width=width, height=height)
 
     return np.array(images)
+
 
 logger = logging.getLogger(__name__)
 
