@@ -17,8 +17,8 @@ from brax.mjx.base import State as mjxState
 from etils import epath
 
 import wandb
-from scripts.mjx.mjx_ppo import train as ppo
-from scripts.mjx.mjx_rewards import DEFAULT_REWARD_PARAMS, RewardParams, get_reward_fn
+from mjx.ppo import train as ppo
+from mjx.rewards import DEFAULT_REWARD_PARAMS, RewardParams, get_reward_fn
 
 
 class EnvKwargs(TypedDict):
