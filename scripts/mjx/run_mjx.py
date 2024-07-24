@@ -35,7 +35,8 @@ class StompyEnv(PipelineEnv):
         self,
         reward_params: RewardParams = DEFAULT_REWARD_PARAMS,  # TODO: change rewards
         terminate_when_unhealthy: bool = True,
-        reset_noise_scale: float = 1e-2,
+        # reset_noise_scale: float = 1e-2,
+        reset_noise_scale: float = 0,
         exclude_current_positions_from_observation: bool = True,
         log_reward_breakdown: bool = True,
         **kwargs: Unpack[EnvKwargs],
@@ -168,7 +169,7 @@ class StompyEnv(PipelineEnv):
         )
 
 
-environments = {"stompylegs": StompyEnv}
+environments = {"stompy": StompyEnv}
 
 
 def get_env(name: str, **kwargs: Any) -> envs.Env:  # noqa: ANN401
@@ -187,10 +188,10 @@ def train(config: dict[str, Any]) -> None:
 
     env = get_env(
         # name=config.get("env_name", "default_humanoid"),
-        name="stompylegs",
+        name="stompy",
         reward_params=config.get("reward_params", DEFAULT_REWARD_PARAMS),
         terminate_when_unhealthy=config.get("terminate_when_unhealthy", True),
-        reset_noise_scale=config.get("reset_noise_scale", 1e-2),
+        reset_noise_scale=config.get("reset_noise_scale", 1e-6),
         exclude_current_positions_from_observation=config.get("exclude_current_positions_from_observation", True),
         log_reward_breakdown=config.get("log_reward_breakdown", True),
     )
@@ -226,7 +227,8 @@ def train(config: dict[str, Any]) -> None:
 
     def save_model(current_step: int, make_policy: str, params: dict[str, Any]) -> None:  # noqa: ANN401
         model_path = (
-            "weights/" + config.get("project_name", "model") + config.get("experiment_name", "ppo-training") + ".pkl"
+            # "weights/" + config.get("project_name", "model") + config.get("experiment_name", "ppo-training") + ".pkl"
+            "weights/model.pkl"
         )
         model.save_params(model_path, params)
         print(f"Saved model at step {current_step} to {model_path}")

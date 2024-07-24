@@ -53,6 +53,7 @@ def _unpmap(v):
     return jax.tree_util.tree_map(lambda x: x[0], v)
 
 
+
 def _strip_weak_type(tree):
     # brax user code is sometimes ambiguous about weak_type.    in order to
     # avoid extra jit recompilations we strip all weak types from user input
