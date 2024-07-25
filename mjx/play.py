@@ -10,6 +10,7 @@ import jax.numpy as jp
 import mediapy as media
 import mujoco
 import numpy as np
+import wandb
 import yaml
 from brax.io import model
 from brax.mjx.base import State as mjxState
@@ -17,7 +18,6 @@ from brax.training.acme import running_statistics
 from brax.training.agents.ppo import networks as ppo_networks
 from tqdm import tqdm
 
-import wandb
 from mjx.train import DEFAULT_REWARD_PARAMS, get_env
 
 InferenceFn = Callable[[jp.ndarray, jp.ndarray], tuple[jp.ndarray, jp.ndarray]]

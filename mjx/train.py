@@ -9,6 +9,7 @@ from typing import Any, NotRequired, TypedDict, Unpack
 import jax
 import jax.numpy as jp
 import mujoco
+import wandb
 import yaml
 from brax import base, envs
 from brax.envs.base import PipelineEnv, State
@@ -16,7 +17,6 @@ from brax.io import mjcf, model
 from brax.mjx.base import State as mjxState
 from etils import epath
 
-import wandb
 from mjx.ppo import train as ppo
 from mjx.rewards import DEFAULT_REWARD_PARAMS, RewardParams, get_reward_fn
 
@@ -228,7 +228,7 @@ def train(config: dict[str, Any]) -> None:
     def save_model(current_step: int, make_policy: str, params: dict[str, Any]) -> None:  # noqa: ANN401
         model_path = (
             # "weights/" + config.get("project_name", "model") + config.get("experiment_name", "ppo-training") + ".pkl"
-            "weights/model.pkl"
+            "model.pkl"
         )
         breakpoint()
         model.save_params(model_path, params)

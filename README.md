@@ -14,7 +14,6 @@ video will be saved to video.mp4
 Before committing changes, run the following formatting commands:
 
 ```bash
-black *.py
-ruff format *.py
-isort .
+make format
+make static-checks
 ```
