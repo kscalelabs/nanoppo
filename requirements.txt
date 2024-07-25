@@ -2,9 +2,15 @@
 
 # Machine learning
 gymnasium[mujoco]
-mujoco<3
+mujoco
 requests
 torch
 matplotlib
 pandas
 seaborn
+jax
+mujoco-mjx
+brax
+wandb
+isort
+omegaconf
