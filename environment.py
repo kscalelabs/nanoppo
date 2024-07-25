@@ -35,7 +35,7 @@ class HumanoidEnv(PipelineEnv):
         physics_steps_per_control_step = 4 
         kwargs["n_frames"] = kwargs.get("n_frames", physics_steps_per_control_step)
         kwargs["backend"] = "mjx"
-        
+
         super().__init__(sys, **kwargs)
 
     def reset(self, rng: jp.ndarray) -> State:
@@ -52,60 +52,26 @@ class HumanoidEnv(PipelineEnv):
 
         return State(mjx_state, obs, reward, done, metrics)
 
+    def rewards(self, mjx_state: MjxState, action: jp.ndarray, next_mjx_state: MjxState) -> Tuple[jp.ndarray, jp.ndarray]:
+        min_z = -1.0
+        max_z = 2.0
+        healthy = jp.where(mjx_state.qpos[2] < min_z, 0.0, 1.0)
+        healthy = jp.where(mjx_state.qpos[2] > max_z, 0.0, healthy)
+        reward = jp.array(5.0) * healthy
+
+        return reward, healthy
     def step(self, state: State, action: jp.ndarray) -> State:
         """Run one timestep of the environment's dynamics."""
         mjx_state = state.pipeline_state
         next_mjx_state = self.pipeline_step(mjx_state, action)
         obs = self.get_obs(mjx_state, action)
-        # reward, done = self.reward_fn(mjx_state, action, next_mjx_state)
-        reward = jp.array(0.0)
-        done = jp.array(1.0)
+        reward, healthy = self.rewards(mjx_state, action, next_mjx_state)
+        # reward = jp.array(0.0)
+        # done = jp.array(1.0)
+
+        done = 1.0 - healthy
         return state.replace(pipeline_state=next_mjx_state, obs=obs, reward=reward, done=done)
-    
+
     def get_obs(self, data: MjxState, action: jp.ndarray) -> jp.ndarray:
         """Returns the observation of the environment."""
         return data.qpos
-    
-# def run_env():
-#     # init env and state
-#     env = HumanoidEnv()
-#     rng = jp.zeros(3)
-#     state = env.reset(rng)
-#     # sim params
-#     duration = 2.0
-#     framerate = 30
-#     # renderer + scene optinos
-#     mj_model = mujoco.MjModel.from_xml_path("assets/stompylegs.xml")
-#     mj_data = mujoco.MjData(mj_model)
-#     renderer = mujoco.Renderer(mj_model)
-#     scene_option = mujoco.MjvOption()
-#     # visualize joints
-#     scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
-#     frames = []
-#     mujoco.mj_resetData(mj_model, mj_data)
-#     current_time = 0.0
-#     mark = 0.1
-#     while current_time < duration:
-#         # action = jp.random_uniform(rng, shape=(env._action_size,))
-#         action = np.zeros(env._action_size)
-#         state = env.step(state, action)
-#         mj_data.qpos = state.pipeline_state.qpos
-#         mj_data.qvel = state.pipeline_state.qvel
-#         mujoco.mj_forward(mj_model, mj_data)
-
-#         if len(frames) < current_time * framerate:
-#             renderer.update_scene(mj_data, scene_option=scene_option)
-#             pixels = renderer.render()
-#             frames.append(pixels)
-
-#         # Step the simulation
-#         mujoco.mj_step(mj_model, mj_data)
-#         current_time += mj_model.opt.timestep
-#     media.show_video(frames, fps=framerate)
-#     print("video done")
-
-
-# if __name__ == "__main__":
-#     # python environment.py
-#     # NOTE: its better to use play to test the environment instead
-#     run_env()

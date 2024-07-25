@@ -25,7 +25,7 @@ config = OmegaConf.create({
     "discounting": 0.99,
     "learning_rate": 1e-4,
     "entropy_cost": 0.01,
-    "num_envs": 8,
+    "num_envs": 1,
     "batch_size": 64,
     "seed": 0,
     "policy_hidden_layer_sizes": [64, 64],
