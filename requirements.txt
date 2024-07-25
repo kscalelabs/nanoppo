@@ -13,3 +13,4 @@ mujoco-mjx
 brax
 wandb
 isort
+omegaconf

@@ -1,20 +1,13 @@
 """Play a trained PPO agent in a specified environment."""
 
-import argparse
-import logging
-import os
 from typing import Any, Callable
-
+import random
 import jax as j
 import jax.numpy as jp
 import mediapy as media
 import mujoco
 import numpy as np
-import yaml
-from brax.io import model
 from brax.mjx.base import State as mjxState
-from brax.training.acme import running_statistics
-from brax.training.agents.ppo import networks as ppo_networks
 from tqdm import tqdm
 from environment import HumanoidEnv
 import wandb
@@ -29,7 +22,11 @@ def mjx_rollout(env: mujoco.MjModel, n_steps: int = 1000, render_every: int = 2,
     rollout = [state.pipeline_state]
     for i in tqdm(range(n_steps)):
         # state = step_fn(state, jp.zeros(env.action_size))
-        state = step_fn(state, 100*j.random.uniform(rng, (env.action_size,)))
+        rng, step_rng = j.random.split(rng)
+        #NOTE: actions is position based: 
+        # action = 10*j.random.uniform(step_rng, (env.action_size,))
+        action = jp.array([10 * random.uniform(0, 1) for _ in range(env._action_size)])
+        state = step_fn(state, action)
         rollout.append(state.pipeline_state)
         if state.done:
             state = reset_fn(rng)

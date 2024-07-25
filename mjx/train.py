@@ -230,6 +230,7 @@ def train(config: dict[str, Any]) -> None:
             # "weights/" + config.get("project_name", "model") + config.get("experiment_name", "ppo-training") + ".pkl"
             "weights/model.pkl"
         )
+        breakpoint()
         model.save_params(model_path, params)
         print(f"Saved model at step {current_step} to {model_path}")
 
