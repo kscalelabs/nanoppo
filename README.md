@@ -14,7 +14,7 @@
 [![black](https://img.shields.io/badge/Code%20Style-Black-black.svg?labelColor=gray)](https://black.readthedocs.io/en/stable/)
 [![ruff](https://img.shields.io/badge/Linter-Ruff-red.svg?labelColor=gray)](https://github.com/charliermarsh/ruff)
 <br />
-[![Python Checks](https://github.com/kscalelabs/min-consistency-models/actions/workflows/test.yml/badge.svg)](https://github.com/kscalelabs/min-consistency-models/actions/workflows/test.yml)
+[![Python Checks](https://github.com/kscalelabs/nanoppo/actions/workflows/test.yml/badge.svg)](https://github.com/kscalelabs/nanoppo/actions/workflows/test.yml)
 
 </div>
 
