@@ -8,7 +8,7 @@ See:
 import functools
 import time
 from datetime import datetime
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 import flax
 import jax
@@ -25,7 +25,7 @@ from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.types import Params, PRNGKey
 from brax.v1 import envs as envs_v1
 from etils import epath
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from orbax import checkpoint as ocp
 
 from environment import HumanoidEnv
@@ -37,24 +37,44 @@ _PMAP_AXIS_NAME = "i"
 
 
 config = OmegaConf.create(
+    # {
+    #     "num_timesteps": 150000000,
+    #     "num_evals": 100,
+    #     "reward_scaling": 0.1,
+    #     "episode_length": 1000,
+    #     "normalize_observations": True,
+    #     "action_repeat": 1,
+    #     "unroll_length": 20,
+    #     "num_minibatches": 32,
+    #     "num_updates_per_batch": 8,
+    #     "discounting": 0.97,
+    #     "learning_rate": 3e-4,
+    #     "entropy_cost": 0.001,
+    #     "num_envs": 4096,
+    #     "batch_size": 512,
+    #     "seed": 0,
+    #     "policy_hidden_layer_sizes": [64, 64, 64, 64, 64],
+    #     "value_hidden_layer_sizes": [256, 256, 256, 256, 256],
+    # }
+    # values for testing
     {
-        "num_timesteps": 150000000,
-        "num_evals": 100,
+        "num_timesteps": 15000,
+        "num_evals": 1000,
         "reward_scaling": 0.1,
-        "episode_length": 1000,
+        "episode_length": 10,
         "normalize_observations": True,
         "action_repeat": 1,
         "unroll_length": 20,
         "num_minibatches": 32,
-        "num_updates_per_batch": 8,
+        "num_updates_per_batch": 4,
         "discounting": 0.97,
         "learning_rate": 3e-4,
         "entropy_cost": 0.001,
-        "num_envs": 4096,
-        "batch_size": 512,
+        "num_envs": 1,
+        "batch_size": 128,
         "seed": 0,
-        "policy_hidden_layer_sizes": [64, 64, 64, 64, 64],
-        "value_hidden_layer_sizes": [256, 256, 256, 256, 256],
+        "policy_hidden_layer_sizes": [16, 16],
+        "value_hidden_layer_sizes": [32, 32],
     }
 )
 
@@ -69,20 +89,35 @@ class TrainingState:
     env_steps: jnp.ndarray
 
 
-def _unpmap(v):
+def _unpmap(
+    v: Union[jnp.ndarray, running_statistics.RunningStatisticsState, Params],
+) -> Union[jnp.ndarray, running_statistics.RunningStatisticsState, Params]:
     """Unpmaps a value.
+
     Args:
         v: The value to unmap.
+
     Returns:
         The value with the leading pmap axis removed.
     """
     return jax.tree_util.tree_map(lambda x: x[0], v)
 
 
-def _strip_weak_type(tree):
+def _strip_weak_type(
+    tree: Union[TrainingState, envs.State, types.Metrics],
+) -> Union[TrainingState, envs.State, types.Metrics]:
+    """Strips weak types from a tree structure.
+
+    Args:
+        tree: The tree structure (e.g., TrainingState, envs.State, or types.Metrics).
+
+    Returns:
+        The tree structure with weak types stripped.
+    """
+
     # brax user code is sometimes ambiguous about weak_type.    in order to
     # avoid extra jit recompilations we strip all weak types from user input
-    def f(leaf):
+    def f(leaf: Union[jnp.ndarray, Tuple[Any, ...]]) -> jnp.ndarray:
         leaf = jnp.asarray(leaf)
         return leaf.astype(leaf.dtype)
 
@@ -113,7 +148,7 @@ def train(
     gae_lambda: float = 0.95,
     deterministic_eval: bool = False,
     network_factory: types.NetworkFactory[ppo_networks.PPONetworks] = ppo_networks.make_ppo_networks,
-    progress_fn: Callable[[int, Metrics], None] = lambda *args: None,
+    progress_fn: Callable[[int, types.Metrics], None] = lambda *args: None,
     normalize_advantage: bool = True,
     eval_env: Optional[envs.Env] = None,
     policy_params_fn: Callable[..., None] = lambda *args: None,
@@ -121,7 +156,11 @@ def train(
     restore_checkpoint_path: Optional[str] = None,
     policy_hidden_layer_sizes: Sequence[int] = (256,) * 3,
     value_hidden_layer_sizes: Sequence[int] = (128,) * 3,
-):
+) -> Tuple[
+    Callable[[Tuple[running_statistics.RunningStatisticsState, Params], bool], types.Policy],
+    Tuple[running_statistics.RunningStatisticsState, Params],
+    types.Metrics,
+]:
     """PPO training.
 
     Args:
@@ -170,6 +209,8 @@ def train(
         randomization_fn: a user-defined callback function that generates randomized
             environments
         restore_checkpoint_path: the path used to restore previous model params
+        policy_hidden_layer_sizes: unused
+        value_hidden_layer_sizes: unused
 
     Returns:
         Tuple of (make_policy function, network params, metrics)
@@ -239,7 +280,13 @@ def train(
     key_envs = jnp.reshape(key_envs, (local_devices_to_use, -1) + key_envs.shape[1:])
     env_state = reset_fn(key_envs)
 
-    normalize = lambda x, y: x
+    # hopefully harmless
+    T = TypeVar("T")
+
+    def normalize(x: T, y: T) -> T:
+        """Return x unchanged."""
+        return x
+
     if normalize_observations:
         normalize = running_statistics.normalize
     ppo_network = network_factory(
@@ -266,7 +313,11 @@ def train(
 
     gradient_update_fn = gradients.gradient_update_fn(loss_fn, optimizer, pmap_axis_name=_PMAP_AXIS_NAME, has_aux=True)
 
-    def minibatch_step(carry, data: types.Transition, normalizer_params: running_statistics.RunningStatisticsState):
+    def minibatch_step(
+        carry: Tuple[optax.OptState, Params, PRNGKey],
+        data: types.Transition,
+        normalizer_params: running_statistics.RunningStatisticsState,
+    ) -> Tuple[Tuple[optax.OptState, Params, PRNGKey], types.Metrics]:
         optimizer_state, params, key = carry
         key, key_loss = jax.random.split(key)
         (_, metrics), params, optimizer_state = gradient_update_fn(
@@ -275,11 +326,16 @@ def train(
 
         return (optimizer_state, params, key), metrics
 
-    def sgd_step(carry, unused_t, data: types.Transition, normalizer_params: running_statistics.RunningStatisticsState):
+    def sgd_step(
+        carry: Tuple[optax.OptState, Params, PRNGKey],
+        unused_t: int,
+        data: types.Transition,
+        normalizer_params: running_statistics.RunningStatisticsState,
+    ) -> Tuple[Tuple[optax.OptState, Params, PRNGKey], types.Metrics]:
         optimizer_state, params, key = carry
         key, key_perm, key_grad = jax.random.split(key, 3)
 
-        def convert_data(x: jnp.ndarray):
+        def convert_data(x: jnp.ndarray) -> jnp.ndarray:
             x = jax.random.permutation(key_perm, x)
             x = jnp.reshape(x, (num_minibatches, -1) + x.shape[1:])
             return x
@@ -294,14 +350,14 @@ def train(
         return (optimizer_state, params, key), metrics
 
     def training_step(
-        carry: Tuple[TrainingState, envs.State, PRNGKey], unused_t
-    ) -> Tuple[Tuple[TrainingState, envs.State, PRNGKey], Metrics]:
+        carry: Tuple[TrainingState, envs.State, PRNGKey], unused_t: int
+    ) -> Tuple[Tuple[TrainingState, envs.State, PRNGKey], types.Metrics]:
         training_state, state, key = carry
         key_sgd, key_generate_unroll, new_key = jax.random.split(key, 3)
 
         policy = make_policy((training_state.normalizer_params, training_state.params.policy))
 
-        def f(carry, unused_t):
+        def f(carry: Tuple[envs.State, PRNGKey], unused_t: int) -> Tuple[Tuple[envs.State, PRNGKey], types.Transition]:
             current_state, current_key = carry
             current_key, next_key = jax.random.split(current_key)
             next_state, data = acting.generate_unroll(
@@ -334,12 +390,12 @@ def train(
             params=params,
             normalizer_params=normalizer_params,
             env_steps=training_state.env_steps + env_step_per_training_step,
-        )  # type: ignore
+        )
         return (new_training_state, state, new_key), metrics
 
     def training_epoch(
         training_state: TrainingState, state: envs.State, key: PRNGKey
-    ) -> Tuple[TrainingState, envs.State, Metrics]:
+    ) -> Tuple[TrainingState, envs.State, types.Metrics]:
         (training_state, state, _), loss_metrics = jax.lax.scan(
             training_step, (training_state, state, key), (), length=num_training_steps_per_epoch
         )
@@ -351,7 +407,7 @@ def train(
     # Note that this is NOT a pure jittable method.
     def training_epoch_with_timing(
         training_state: TrainingState, env_state: envs.State, key: PRNGKey
-    ) -> Tuple[TrainingState, envs.State, Metrics]:
+    ) -> Tuple[TrainingState, envs.State, types.Metrics]:
         nonlocal training_walltime
         t = time.time()
         training_state, env_state = _strip_weak_type((training_state, env_state))
@@ -377,14 +433,14 @@ def train(
     init_params = ppo_losses.PPONetworkParams(
         policy=ppo_network.policy_network.init(key_policy),
         value=ppo_network.value_network.init(key_value),
-    )  # type: ignore
+    )
 
-    training_state = TrainingState(  # type: ignore    # jax-ndarray
-        optimizer_state=optimizer.init(init_params),  # type: ignore    # numpy-scalars
+    training_state = TrainingState(  # jax-ndarray
+        optimizer_state=optimizer.init(init_params),  # numpy-scalars
         params=init_params,
         normalizer_params=running_statistics.init_state(specs.Array(env_state.obs.shape[-1:], jnp.dtype("float32"))),
         env_steps=0,
-    )  # type: ignore
+    )
 
     if num_timesteps == 0:
         return (
@@ -442,7 +498,9 @@ def train(
             (training_state, env_state, training_metrics) = training_epoch_with_timing(
                 training_state, env_state, epoch_keys
             )
+            breakpoint()
             current_step = int(_unpmap(training_state.env_steps))
+            breakpoint()
             key_envs = jax.vmap(lambda x, s: jax.random.split(x[0], s), in_axes=(0, None))(key_envs, key_envs.shape[1])
             # TODO: move extra reset logic to the AutoResetWrapper.
             env_state = reset_fn(key_envs) if num_resets_per_eval > 0 else env_state
@@ -469,7 +527,7 @@ def train(
     return (make_policy, params, metrics)
 
 
-def main(config: dict[str, Any]) -> None:
+def main(config: DictConfig) -> None:
     env = HumanoidEnv()
     times = [datetime.now()]
 
