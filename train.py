@@ -37,44 +37,24 @@ _PMAP_AXIS_NAME = "i"
 
 
 config = OmegaConf.create(
-    # {
-    #     "num_timesteps": 150000000,
-    #     "num_evals": 100,
-    #     "reward_scaling": 0.1,
-    #     "episode_length": 1000,
-    #     "normalize_observations": True,
-    #     "action_repeat": 1,
-    #     "unroll_length": 20,
-    #     "num_minibatches": 32,
-    #     "num_updates_per_batch": 8,
-    #     "discounting": 0.97,
-    #     "learning_rate": 3e-4,
-    #     "entropy_cost": 0.001,
-    #     "num_envs": 4096,
-    #     "batch_size": 512,
-    #     "seed": 0,
-    #     "policy_hidden_layer_sizes": [64, 64, 64, 64, 64],
-    #     "value_hidden_layer_sizes": [256, 256, 256, 256, 256],
-    # }
-    # values for testing
     {
-        "num_timesteps": 15000,
-        "num_evals": 1000,
+        "num_timesteps": 150000000,
+        "num_evals": 100,
         "reward_scaling": 0.1,
-        "episode_length": 10,
+        "episode_length": 1000,
         "normalize_observations": True,
         "action_repeat": 1,
         "unroll_length": 20,
         "num_minibatches": 32,
-        "num_updates_per_batch": 4,
+        "num_updates_per_batch": 8,
         "discounting": 0.97,
         "learning_rate": 3e-4,
         "entropy_cost": 0.001,
-        "num_envs": 1,
-        "batch_size": 128,
+        "num_envs": 4096,
+        "batch_size": 512,
         "seed": 0,
-        "policy_hidden_layer_sizes": [16, 16],
-        "value_hidden_layer_sizes": [32, 32],
+        "policy_hidden_layer_sizes": [64, 64, 64, 64, 64],
+        "value_hidden_layer_sizes": [256, 256, 256, 256, 256],
     }
 )
 
