@@ -1,11 +1,9 @@
 # requirements.txt
 
-# Machine learning
-mujoco
-torch
-jax
-mujoco-mjx
 brax
-isort
-omegaconf
+jax
+mujoco
+mujoco-mjx
 numpy
+omegaconf
+torch

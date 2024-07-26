@@ -18,10 +18,7 @@ class EnvKwargs(TypedDict):
 
 
 class HumanoidEnv(PipelineEnv):
-    def __init__(
-        self,
-        **kwargs: Unpack[EnvKwargs],
-    ) -> None:
+    def __init__(self, **kwargs: Unpack[EnvKwargs]) -> None:
         # load the model which determines the robot + environment,
         # including the physics and observation/action spaces
         mj_model = mujoco.MjModel.from_xml_path("assets/stompylegs.xml")

@@ -45,7 +45,7 @@ jobs:
       - name: Run static checks
         run: |
           pip install --upgrade --upgrade-strategy eager --extra-index-url https://download.pytorch.org/whl/cpu --pre -r requirements.txt
-          pip install black darglint mypy ruff
+          pip install black darglint mypy ruff isort
           black --diff --check *.py
           ruff check *.py
           mkdir -p .mypy_cache

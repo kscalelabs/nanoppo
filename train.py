@@ -6,8 +6,10 @@ See:
 """
 
 import functools
+import logging
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 import flax
@@ -15,7 +17,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
-from absl import logging
 from brax import base, envs
 from brax.io import model
 from brax.training import acting, gradients, pmap, types
@@ -24,11 +25,12 @@ from brax.training.agents.ppo import losses as ppo_losses
 from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.types import Params, PRNGKey
 from brax.v1 import envs as envs_v1
-from etils import epath
 from omegaconf import DictConfig, OmegaConf
 from orbax import checkpoint as ocp
 
 from environment import HumanoidEnv
+
+logger = logging.getLogger(__name__)
 
 InferenceParams = Tuple[running_statistics.NestedMeanStd, Params]
 Metrics = types.Metrics
@@ -204,7 +206,7 @@ def train(
     local_devices_to_use = local_device_count
     if max_devices_per_host:
         local_devices_to_use = min(local_devices_to_use, max_devices_per_host)
-    logging.info(
+    logger.info(
         "Device count: %d, process count: %d (id %d), local device count: %d, " "devices to be used count: %d",
         jax.device_count(),
         process_count,
@@ -330,7 +332,8 @@ def train(
         return (optimizer_state, params, key), metrics
 
     def training_step(
-        carry: Tuple[TrainingState, envs.State, PRNGKey], unused_t: int
+        carry: Tuple[TrainingState, envs.State, PRNGKey],
+        unused_t: int,
     ) -> Tuple[Tuple[TrainingState, envs.State, PRNGKey], types.Metrics]:
         training_state, state, key = carry
         key_sgd, key_generate_unroll, new_key = jax.random.split(key, 3)
@@ -377,7 +380,10 @@ def train(
         training_state: TrainingState, state: envs.State, key: PRNGKey
     ) -> Tuple[TrainingState, envs.State, types.Metrics]:
         (training_state, state, _), loss_metrics = jax.lax.scan(
-            training_step, (training_state, state, key), (), length=num_training_steps_per_epoch
+            training_step,
+            (training_state, state, key),
+            (),
+            length=num_training_steps_per_epoch,
         )
         loss_metrics = jax.tree_util.tree_map(jnp.mean, loss_metrics)
         return training_state, state, loss_metrics
@@ -386,7 +392,9 @@ def train(
 
     # Note that this is NOT a pure jittable method.
     def training_epoch_with_timing(
-        training_state: TrainingState, env_state: envs.State, key: PRNGKey
+        training_state: TrainingState,
+        env_state: envs.State,
+        key: PRNGKey,
     ) -> Tuple[TrainingState, envs.State, types.Metrics]:
         nonlocal training_walltime
         t = time.time()
@@ -429,8 +437,8 @@ def train(
             {},
         )
 
-    if restore_checkpoint_path is not None and epath.Path(restore_checkpoint_path).exists():
-        logging.info("restoring from checkpoint %s", restore_checkpoint_path)
+    if restore_checkpoint_path is not None and Path(restore_checkpoint_path).exists():
+        logger.info("restoring from checkpoint %s", restore_checkpoint_path)
         orbax_checkpointer = ocp.PyTreeCheckpointer()
         target = training_state.normalizer_params, init_params
         (normalizer_params, init_params) = orbax_checkpointer.restore(restore_checkpoint_path, item=target)
@@ -461,16 +469,17 @@ def train(
     metrics = {}
     if process_id == 0 and num_evals > 1:
         metrics = evaluator.run_evaluation(
-            _unpmap((training_state.normalizer_params, training_state.params.policy)), training_metrics={}
+            _unpmap((training_state.normalizer_params, training_state.params.policy)),
+            training_metrics={},
         )
-        logging.info(metrics)
+        logger.info(metrics)
         progress_fn(0, metrics)
 
     training_metrics = {}
-    training_walltime = 0
+    training_walltime = 0.0
     current_step = 0
     for it in range(num_evals_after_init):
-        logging.info("starting iteration %s %s", it, time.time() - xt)
+        logger.info("starting iteration %s %s", it, time.time() - xt)
 
         for _ in range(max(num_resets_per_eval, 1)):
             epoch_key, local_key = jax.random.split(local_key)
@@ -478,9 +487,7 @@ def train(
             (training_state, env_state, training_metrics) = training_epoch_with_timing(
                 training_state, env_state, epoch_keys
             )
-            breakpoint()
             current_step = int(_unpmap(training_state.env_steps))
-            breakpoint()
             key_envs = jax.vmap(lambda x, s: jax.random.split(x[0], s), in_axes=(0, None))(key_envs, key_envs.shape[1])
             # TODO: move extra reset logic to the AutoResetWrapper.
             env_state = reset_fn(key_envs) if num_resets_per_eval > 0 else env_state
@@ -490,7 +497,7 @@ def train(
             metrics = evaluator.run_evaluation(
                 _unpmap((training_state.normalizer_params, training_state.params.policy)), training_metrics
             )
-            logging.info(metrics)
+            logger.info(metrics)
             progress_fn(current_step, metrics)
             params = _unpmap((training_state.normalizer_params, training_state.params))
             policy_params_fn(current_step, make_policy, params)
@@ -502,7 +509,7 @@ def train(
     # devices.
     pmap.assert_is_replicated(training_state)
     params = _unpmap((training_state.normalizer_params, training_state.params.policy))
-    logging.info("total steps: %s", total_steps)
+    logger.info("total steps: %s", total_steps)
     pmap.synchronize_hosts()
     return (make_policy, params, metrics)
 
