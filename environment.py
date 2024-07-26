@@ -3,7 +3,6 @@
 from typing import NotRequired, Tuple, TypedDict, Unpack
 
 import mujoco
-import numpy as np
 from brax import base
 from brax.envs.base import PipelineEnv, State
 from brax.io import mjcf

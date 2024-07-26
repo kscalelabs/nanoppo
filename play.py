@@ -1,6 +1,6 @@
 """Play a trained PPO agent in a specified environment."""
 
-from typing import Any, Callable
+from typing import Callable
 
 import jax as j
 import jax.numpy as jp
@@ -11,12 +11,14 @@ from brax.io import model
 from brax.mjx.base import State as mjxState
 from brax.training.acme import running_statistics
 from brax.training.agents.ppo import networks as ppo_networks
-from tqdm import tqdm
 from omegaconf import DictConfig
+from tqdm import tqdm
+
 from environment import HumanoidEnv
 from train import config
 
 InferenceFn = Callable[[jp.ndarray, jp.ndarray], tuple[jp.ndarray, jp.ndarray]]
+
 
 def mjx_rollout(
     env: mujoco.MjModel,
@@ -101,4 +103,3 @@ if __name__ == "__main__":
     # python -m play
     play(config, n_steps=1000, render_every=2, width=640, height=480)
     # run this script to play the trained agent in the environment
-
