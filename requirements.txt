@@ -1,16 +1,11 @@
 # requirements.txt
 
 # Machine learning
-gymnasium[mujoco]
 mujoco
-requests
 torch
-matplotlib
-pandas
-seaborn
 jax
 mujoco-mjx
 brax
-wandb
 isort
 omegaconf
+numpy
